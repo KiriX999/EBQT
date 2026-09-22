@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070a14">
+<title>EBQT — Quiz interattivo in classe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   EBQT — Design system
+   ===================================================================== */
+:root{
+  --bg0:#070a14;
+  --bg1:#0b1022;
+  --glass:rgba(255,255,255,.05);
+  --glass-b:rgba(255,255,255,.11);
+  --text:#e8ecf8;
+  --muted:#8b93ad;
+  --cyan:#22d3ee;
+  --violet:#a78bfa;
+  --pink:#f472b6;
+  --red:#ef4444;
+  --red-d:#7f1d1d;
+  --gold:#fbbf24;
+  --green:#34d399;
+  --radius:22px;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;overflow-x:hidden}
+body{
+  margin:0;min-height:100vh;color:var(--text);background:var(--bg0);overflow-x:hidden;
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+svg{display:block}
+
+/* ---------- Sfondo dinamico ---------- */
+.bg{position:fixed;inset:0;z-index:-1;overflow:hidden;
+  background:
+    radial-gradient(1200px 800px at 70% -10%,#1b1f4a 0%,transparent 60%),
+    radial-gradient(900px 700px at -10% 100%,#0e2a3a 0%,transparent 60%),
+    var(--bg0);}
+.blob{position:absolute;border-radius:50%;opacity:.6;will-change:transform;
+  animation:drift 22s steps(130) infinite alternate}
+.b1{width:70vmax;height:70vmax;left:-25vmax;top:-25vmax;background:radial-gradient(circle,rgba(124,58,237,.9) 0%,rgba(124,58,237,.35) 30%,transparent 68%)}
+.b2{width:60vmax;height:60vmax;right:-20vmax;top:5vmax;background:radial-gradient(circle,rgba(8,145,178,.85) 0%,rgba(8,145,178,.3) 30%,transparent 68%);animation-duration:28s;animation-delay:-8s}
+.b3{width:55vmax;height:55vmax;left:15vmax;bottom:-30vmax;background:radial-gradient(circle,rgba(219,39,119,.8) 0%,rgba(219,39,119,.28) 30%,transparent 68%);animation-duration:26s;animation-delay:-14s}
+@keyframes drift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(6vmax,-4vmax) scale(1.15)}100%{transform:translate(-4vmax,6vmax) scale(.95)}}
+.grid{position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:44px 44px;
+  -webkit-mask-image:radial-gradient(ellipse at center,#000 25%,transparent 75%);
+  mask-image:radial-gradient(ellipse at center,#000 25%,transparent 75%)}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:40}
+
+/* ---------- Componenti base ---------- */
+.glass{
+  background:linear-gradient(135deg,rgba(255,255,255,.085),rgba(255,255,255,.025));
+  border:1px solid var(--glass-b);border-radius:var(--radius);
+  -webkit-backdrop-filter:blur(18px) saturate(140%);backdrop-filter:blur(18px) saturate(140%);
+  box-shadow:0 24px 60px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08);
+}
+.view{animation:viewIn .55s cubic-bezier(.2,.8,.2,1) both}
+@keyframes viewIn{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:none}}
+.wrap{max-width:1120px;margin:0 auto;padding:clamp(16px,3vw,32px)}
+
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;font-size:.72rem;font-weight:800;
+  letter-spacing:.07em;text-transform:uppercase;border:1px solid var(--glass-b);background:var(--glass);transition:.3s;white-space:nowrap}
+.pill.live{color:#05070f;background:var(--cyan);border-color:transparent;box-shadow:0 0 18px rgba(34,211,238,.6)}
+.pill.done{color:#05070f;background:var(--green);border-color:transparent;box-shadow:0 0 18px rgba(52,211,153,.5)}
+.pill.results{color:#1a1200;background:var(--gold);border-color:transparent;box-shadow:0 0 18px rgba(251,191,36,.55)}
+
+.chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 7px;border-radius:999px;background:var(--glass);
+  border:1px solid var(--glass-b);font-size:.85rem;max-width:100%}
+.chip small{color:var(--muted)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);flex:none}
+.dot.off{background:#64748b;box-shadow:none}
+
+.avatar{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:.7rem;font-weight:800;color:#fff;flex:none;
+  background:linear-gradient(135deg,hsl(var(--h,200) 80% 55%),hsl(calc(var(--h,200) + 45) 80% 45%));
+  box-shadow:0 4px 12px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.3)}
+
+.btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;
+  border-radius:14px;border:1px solid transparent;cursor:pointer;font-weight:700;letter-spacing:.01em;
+  transition:transform .15s,box-shadow .25s,filter .25s,opacity .25s;-webkit-tap-highlight-color:transparent}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:saturate(.35)}
+.btn:not(:disabled):hover{transform:translateY(-2px)}
+.btn:not(:disabled):active{transform:translateY(0) scale(.98)}
+.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--violet));color:#05070f;box-shadow:0 10px 30px rgba(34,211,238,.3)}
+.btn-primary:not(:disabled):hover{box-shadow:0 14px 40px rgba(34,211,238,.5)}
+.btn-ghost{background:var(--glass);border-color:var(--glass-b)}
+.btn-ghost:not(:disabled):hover{border-color:rgba(255,255,255,.25)}
+.btn-danger{background:linear-gradient(135deg,#f43f5e,#ef4444);color:#fff;box-shadow:0 10px 30px rgba(239,68,68,.3)}
+.btn-danger:not(:disabled):hover{box-shadow:0 14px 40px rgba(239,68,68,.5)}
+.btn-gold{background:linear-gradient(135deg,#fde68a,#f59e0b);color:#1a1200;box-shadow:0 10px 30px rgba(251,191,36,.3)}
+.btn-gold:not(:disabled):hover{box-shadow:0 14px 40px rgba(251,191,36,.5)}
+.btn-block{width:100%}
+.btn-sm{padding:7px 12px;font-size:.8rem;border-radius:10px}
+.btn .rip{position:absolute;border-radius:50%;transform:scale(0);background:rgba(255,255,255,.45);animation:btnRip .6s ease-out forwards;pointer-events:none}
+@keyframes btnRip{to{transform:scale(3);opacity:0}}
+
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.field label{font-size:.75rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-weight:700}
+.input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--glass-b);background:rgba(0,0,0,.28);outline:none;
+  transition:box-shadow .2s,border-color .2s}
+.input::placeholder{color:#5b6280}
+.input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.18),0 0 24px rgba(34,211,238,.28)}
+textarea.input{min-height:112px;resize:vertical;line-height:1.45}
+
+.progress{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:10px 0 14px}
+.progress i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--cyan),var(--violet));
+  box-shadow:0 0 16px rgba(34,211,238,.6);transition:width .5s cubic-bezier(.2,.8,.2,1)}
+
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.15);border-top-color:var(--cyan);animation:spin .8s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- Topbar ---------- */
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:10px clamp(14px,3vw,28px);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
+  background:rgba(7,10,20,.6);border-bottom:1px solid var(--glass-b)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:-.01em;font-size:1.1rem}
+.brand em{font-style:normal;background:linear-gradient(90deg,var(--cyan),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+.bolt{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#05070f;
+  background:linear-gradient(135deg,var(--cyan),var(--violet));box-shadow:0 0 24px rgba(34,211,238,.45)}
+.bolt svg{width:20px;height:20px}
+.tb-mid{display:flex;gap:8px;align-items:center}
+.tb-right{display:flex;gap:10px;align-items:center}
+.tb-right .chip{padding-right:12px}
+.tb-right .chip b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40vw}
+
+/* ---------- Landing ---------- */
+.landing{min-height:100vh;display:grid;place-items:center;padding:24px 16px}
+.login{width:min(470px,100%);padding:clamp(22px,4vw,36px)}
+.hero{text-align:center;margin-bottom:22px}
+.hero .logo{width:64px;height:64px;border-radius:20px;margin:0 auto 10px;display:grid;place-items:center;color:#05070f;
+  background:linear-gradient(135deg,var(--cyan),var(--violet));box-shadow:0 0 40px rgba(34,211,238,.45),0 16px 40px rgba(0,0,0,.4);
+  animation:float 4s ease-in-out infinite}
+.hero .logo svg{width:34px;height:34px}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.hero h1{font-size:clamp(2.2rem,6vw,3.2rem);margin:.15em 0 .1em;letter-spacing:-.03em;font-weight:900}
+.hero h1 span{background:linear-gradient(90deg,var(--cyan),var(--violet),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--muted);margin:0}
+.roles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.role{position:relative;padding:14px 12px;border-radius:16px;border:1px solid var(--glass-b);background:rgba(255,255,255,.03);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:8px;font-weight:700;
+  transition:transform .2s,border-color .2s,box-shadow .2s,background .2s;-webkit-tap-highlight-color:transparent}
+.role svg{width:28px;height:28px;color:var(--muted);transition:color .2s}
+.role:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.22)}
+.role.active{border-color:var(--cyan);background:linear-gradient(135deg,rgba(34,211,238,.16),rgba(167,139,250,.12));
+  box-shadow:0 0 0 1px rgba(34,211,238,.4),0 0 30px rgba(34,211,238,.25)}
+.role.active svg{color:var(--cyan)}
+.role.active[data-role="prof"]{border-color:var(--violet);box-shadow:0 0 0 1px rgba(167,139,250,.4),0 0 30px rgba(167,139,250,.25)}
+.role.active[data-role="prof"] svg{color:var(--violet)}
+.pass{position:relative}
+.pass .input{padding-right:46px}
+.eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;cursor:pointer;color:var(--muted);padding:8px;border-radius:8px}
+.eye:hover{color:var(--text)}
+.eye svg{width:20px;height:20px}
+.error{color:#fecaca;font-size:.9rem;margin:0 0 12px;padding:10px 12px;border-radius:10px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4)}
+.shake{animation:shake .45s cubic-bezier(.36,.07,.19,.97) both}
+@keyframes shake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(2px)}30%,50%,70%{transform:translateX(-5px)}40%,60%{transform:translateX(5px)}}
+.hint{color:var(--muted);font-size:.82rem;margin:12px 0 0;text-align:center;line-height:1.5}
+
+/* ---------- Dashboard studente ---------- */
+.student{display:grid;gap:18px;max-width:720px;margin:0 auto}
+.qcard{padding:clamp(18px,3vw,28px);min-height:150px;position:relative;transition:border-color .5s}
+.qcard::after{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .5s;
+  box-shadow:0 0 0 1px rgba(34,211,238,.6),0 0 60px rgba(34,211,238,.45)}
+.qcard.live{border-color:rgba(34,211,238,.55)}
+.qcard.live::after{animation:fadePulse 2.4s ease-in-out infinite}
+@keyframes fadePulse{0%,100%{opacity:.35}50%{opacity:1}}
+.qhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.waiting{display:flex;flex-direction:column;align-items:center;gap:14px;padding:18px 0 8px;color:var(--muted);text-align:center}
+.waiting p{margin:0;font-weight:600;color:var(--text)}
+.ring{position:relative;width:84px;height:84px;display:grid;place-items:center}
+.ring::before,.ring::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(34,211,238,.85);animation:ringPulse 2.2s ease-out infinite}
+.ring::after{animation-delay:1.1s}
+@keyframes ringPulse{0%{transform:scale(.35);opacity:1}100%{transform:scale(1.25);opacity:0}}
+.loader{display:flex;gap:8px}
+.loader span{width:11px;height:11px;border-radius:50%;background:var(--cyan);box-shadow:0 0 14px var(--cyan);animation:pulseDot 1.2s ease-in-out infinite}
+.loader span:nth-child(2){animation-delay:.2s}
+.loader span:nth-child(3){animation-delay:.4s}
+@keyframes pulseDot{0%,100%{transform:scale(.6);opacity:.4}50%{transform:scale(1.15);opacity:1}}
+.question .lbl{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);margin:0 0 8px;font-weight:800}
+.question h2{margin:0;font-size:clamp(1.3rem,3.8vw,1.9rem);line-height:1.3;font-weight:800;overflow-wrap:anywhere;animation:qIn .6s cubic-bezier(.2,.8,.2,1)}
+@keyframes qIn{from{opacity:0;transform:translateY(10px);filter:blur(6px)}to{opacity:1;transform:none;filter:blur(0)}}
+
+.timer-wrap{text-align:center}
+.timer{font-family:var(--mono);font-size:clamp(2.6rem,10vw,5rem);font-weight:700;letter-spacing:.02em;line-height:1;
+  font-variant-numeric:tabular-nums;color:#c7d2fe;text-shadow:0 0 30px rgba(99,102,241,.25);transition:color .3s,text-shadow .3s}
+.timer.run{color:#fff;text-shadow:0 0 10px rgba(34,211,238,.9),0 0 40px rgba(34,211,238,.5)}
+.timer.stop{color:#bbf7d0;text-shadow:0 0 10px rgba(52,211,153,.9),0 0 40px rgba(52,211,153,.5);animation:stamp .35s cubic-bezier(.2,.8,.2,1)}
+@keyframes stamp{0%{transform:scale(1.18)}100%{transform:scale(1)}}
+.timer-sub{color:var(--muted);font-size:.9rem;margin-top:8px}
+
+/* ---------- Tasto rosso 3D ---------- */
+.buzzer-area{display:grid;place-items:center;padding:26px 0 30px}
+.buzzer{--size:clamp(180px,50vw,270px);width:var(--size);height:var(--size);border-radius:50%;position:relative;
+  background:none;border:0;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.buzzer:focus-visible{outline:none}
+.buzzer:focus-visible .buzzer-base{box-shadow:0 30px 60px rgba(0,0,0,.6),0 0 0 3px var(--cyan)}
+.buzzer-glow{position:absolute;inset:-28%;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(239,68,68,.55),transparent 62%);filter:blur(12px);opacity:0;transition:opacity .5s}
+.buzzer-base{position:absolute;inset:-13%;border-radius:50%;
+  background:radial-gradient(circle at 50% 30%,#333b56,#0c1020 72%);
+  box-shadow:0 30px 60px rgba(0,0,0,.6),inset 0 2px 4px rgba(255,255,255,.1),inset 0 -12px 26px rgba(0,0,0,.65);transition:box-shadow .3s}
+.buzzer-base::after{content:"";position:absolute;inset:6%;border-radius:50%;background:radial-gradient(circle at 50% 100%,#1b2035,#05070f 70%);
+  box-shadow:inset 0 10px 24px rgba(0,0,0,.8)}
+.buzzer-cap{position:absolute;inset:0;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;
+  background:radial-gradient(circle at 35% 28%,#ff8a8a 0%,#ef4444 42%,#b91c1c 100%);
+  box-shadow:0 18px 0 var(--red-d),0 24px 8px rgba(0,0,0,.4),0 30px 70px rgba(239,68,68,.45),
+    inset 0 -10px 18px rgba(0,0,0,.3),inset 0 8px 12px rgba(255,255,255,.35);
+  transform:translateY(-10px);transition:transform .09s ease,box-shadow .09s ease,filter .4s,background .4s}
+.buzzer-cap::after{content:"";position:absolute;inset:7%;border-radius:50%;border:2px solid rgba(255,255,255,.2);pointer-events:none}
+.buzzer-label{font-weight:900;font-size:clamp(1.35rem,6vw,2.1rem);letter-spacing:.08em;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.45);transition:.3s}
+.buzzer-sub{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.88);font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.4)}
+.buzzer.armed .buzzer-glow{opacity:1;animation:glowPulse 1.6s ease-in-out infinite}
+@keyframes glowPulse{0%,100%{transform:scale(.92);opacity:.55}50%{transform:scale(1.12);opacity:1}}
+.buzzer.armed .buzzer-cap{box-shadow:0 18px 0 var(--red-d),0 24px 8px rgba(0,0,0,.4),0 30px 90px rgba(239,68,68,.65),0 0 30px rgba(255,120,120,.35),inset 0 -10px 18px rgba(0,0,0,.3),inset 0 8px 12px rgba(255,255,255,.35)}
+.buzzer.armed:hover .buzzer-cap{transform:translateY(-13px);
+  box-shadow:0 21px 0 var(--red-d),0 27px 10px rgba(0,0,0,.4),0 34px 100px rgba(239,68,68,.75),0 0 40px rgba(255,120,120,.5),inset 0 -10px 18px rgba(0,0,0,.3),inset 0 8px 12px rgba(255,255,255,.4)}
+.buzzer.armed:active .buzzer-cap,.buzzer.pressed .buzzer-cap{transform:translateY(7px);
+  box-shadow:0 1px 0 var(--red-d),0 3px 6px rgba(0,0,0,.4),0 10px 30px rgba(239,68,68,.35),inset 0 -6px 14px rgba(0,0,0,.4),inset 0 6px 10px rgba(255,255,255,.25)}
+.buzzer.pressed .buzzer-cap{background:radial-gradient(circle at 35% 28%,#6ee7b7 0%,#10b981 42%,#047857 100%);
+  box-shadow:0 1px 0 #064e3b,0 3px 6px rgba(0,0,0,.4),0 10px 40px rgba(16,185,129,.45),inset 0 -6px 14px rgba(0,0,0,.4),inset 0 6px 10px rgba(255,255,255,.25)}
+.buzzer.locked{cursor:not-allowed}
+.buzzer.locked .buzzer-cap{filter:saturate(.25) brightness(.65)}
+.buzzer.pressed{cursor:default}
+.shock{position:absolute;inset:0;border-radius:50%;border:4px solid rgba(255,90,90,.95);pointer-events:none;
+  box-shadow:0 0 30px rgba(239,68,68,.8),inset 0 0 20px rgba(239,68,68,.5);animation:shock .95s cubic-bezier(.1,.7,.3,1) forwards}
+@keyframes shock{0%{transform:scale(1);opacity:1}100%{transform:scale(2.6);opacity:0}}
+
+/* ---------- Partecipanti (attesa) ---------- */
+.participants{padding:18px 20px}
+.lb-title{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.lb-title strong{font-size:1.05rem}
+.lb-title .sub{color:var(--muted);font-size:.85rem;width:100%}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chipp{display:inline-flex;align-items:center;gap:8px;padding:5px 11px 5px 5px;border-radius:999px;background:rgba(255,255,255,.05);
+  border:1px solid var(--glass-b);font-size:.85rem;font-weight:600;animation:chipIn .35s cubic-bezier(.2,.8,.2,1) both;transition:.3s}
+@keyframes chipIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:none}}
+.chipp.done{border-color:rgba(52,211,153,.55);background:rgba(52,211,153,.12)}
+.chipp.me{box-shadow:0 0 0 1px rgba(34,211,238,.6)}
+.chipp .st{font-size:.72rem;color:var(--muted);font-weight:700}
+.chipp.done .st{color:var(--green)}
+.chipp .avatar{width:24px;height:24px;font-size:.62rem}
+.chipp svg{width:14px;height:14px;color:var(--green)}
+
+/* ---------- Leaderboard ---------- */
+.lb{padding:clamp(18px,3vw,26px)}
+.lb ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.lb-row{position:relative;display:grid;grid-template-columns:40px 32px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;
+  background:rgba(255,255,255,.04);border:1px solid var(--glass-b);animation:rowIn .5s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 90ms)}
+@keyframes rowIn{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:none}}
+.lb-rank{font-weight:900;font-size:1.05rem;color:var(--muted);text-align:center}
+.lb-rank svg{width:30px;height:30px;margin:0 auto;color:var(--gold);filter:drop-shadow(0 0 8px rgba(251,191,36,.8))}
+.lb-name{font-weight:700;display:flex;flex-direction:column;gap:4px;min-width:0}
+.lb-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-name small{color:var(--muted);font-weight:500}
+.lb-time{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;text-align:right;line-height:1.15}
+.lb-time small{display:block;font-family:'Inter',system-ui,sans-serif;color:var(--muted);font-weight:600;font-size:.72rem}
+.lb-row.me{box-shadow:inset 0 0 0 1px rgba(34,211,238,.5)}
+.lb-row.missed{opacity:.5}
+.lb-row.missed .lb-time{font-family:'Inter',system-ui,sans-serif;font-weight:600;color:var(--muted);font-size:.85rem}
+.lb-row.first{grid-template-columns:48px 40px 1fr auto;padding:16px;border-color:rgba(251,191,36,.7);
+  background:linear-gradient(135deg,rgba(251,191,36,.2),rgba(245,158,11,.05));box-shadow:0 0 0 1px rgba(251,191,36,.35)}
+.lb-row.first::after{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;
+  box-shadow:0 0 0 1px rgba(251,191,36,.8),0 0 60px rgba(251,191,36,.6);animation:fadePulse 2.2s ease-in-out infinite}
+.lb-row.first .avatar{width:40px;height:40px;font-size:.9rem;box-shadow:0 0 0 2px var(--gold),0 0 20px rgba(251,191,36,.6)}
+.lb-row.first .lb-name span{font-size:1.15rem}
+.lb-row.first .lb-time{color:var(--gold);font-size:1.15rem;text-shadow:0 0 14px rgba(251,191,36,.6)}
+.badge-voice{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;background:var(--gold);color:#1a1200;
+  font-size:.7rem;font-weight:900;letter-spacing:.06em;text-transform:uppercase;width:fit-content;animation:badgePop .5s .35s cubic-bezier(.2,.8,.2,1) both}
+.badge-voice svg{width:12px;height:12px}
+@keyframes badgePop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+.callout{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;margin-bottom:14px;
+  background:linear-gradient(135deg,rgba(251,191,36,.22),rgba(245,158,11,.06));border:1px solid rgba(251,191,36,.6);font-weight:700}
+.callout svg{width:22px;height:22px;color:var(--gold);flex:none}
+.callout b{color:var(--gold)}
+.empty{color:var(--muted);text-align:center;padding:22px 10px;line-height:1.5}
+
+/* ---------- Banner vincitore ---------- */
+.winner{text-align:center;padding:26px 18px;border-radius:var(--radius);
+  background:linear-gradient(135deg,rgba(251,191,36,.22),rgba(245,158,11,.05));border:1px solid rgba(251,191,36,.65);
+  box-shadow:0 0 60px rgba(251,191,36,.35),inset 0 1px 0 rgba(255,255,255,.2);animation:winIn .7s cubic-bezier(.2,.8,.2,1);margin-bottom:18px}
+@keyframes winIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
+.trophy{width:64px;height:64px;margin:0 auto 6px;color:var(--gold);filter:drop-shadow(0 0 16px rgba(251,191,36,.9));animation:bounce 1.3s ease-in-out infinite}
+.trophy svg{width:100%;height:100%}
+@keyframes bounce{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-8px) rotate(4deg)}}
+.winner h2{margin:4px 0;font-size:clamp(1.8rem,7vw,2.9rem);font-weight:900;letter-spacing:-.02em;
+  background:linear-gradient(90deg,#fde68a,#fbbf24,#f59e0b,#fde68a);background-size:200% auto;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 2.5s linear infinite}
+@keyframes shine{to{background-position:200% center}}
+.winner p{margin:6px 0 0;color:#fef3c7;font-size:1.05rem}
+.winner p strong{color:var(--gold)}
+.position{text-align:center;color:var(--muted);margin:0 0 14px;font-weight:600}
+.position b{color:var(--text)}
+
+/* ---------- Dashboard professore ---------- */
+.prof{display:grid;gap:18px;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}
+@media(max-width:860px){.prof{grid-template-columns:1fr}}
+.span2{grid-column:1/-1}
+.panel{padding:clamp(18px,3vw,26px)}
+.panel h3{margin:0 0 14px;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.stat{padding:12px 8px;border-radius:14px;background:rgba(0,0,0,.25);border:1px solid var(--glass-b);text-align:center}
+.stat b{display:block;font-size:1.5rem;font-weight:900;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat span{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.current-q{padding:12px 14px;border-radius:14px;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.4);margin-bottom:14px;animation:qIn .5s}
+.current-q small{display:block;color:var(--cyan);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;font-weight:800;margin-bottom:4px}
+.current-q div{font-weight:700;line-height:1.35;overflow-wrap:anywhere}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+.actions .btn{flex:1 1 auto}
+.mon{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(235px,1fr))}
+.mcard{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);
+  border:1px solid var(--glass-b);transition:.3s;animation:chipIn .35s both}
+.mcard.st-pressed{border-color:rgba(52,211,153,.55);background:rgba(52,211,153,.1)}
+.mcard.first{border-color:rgba(251,191,36,.7);background:rgba(251,191,36,.12);box-shadow:0 0 20px rgba(251,191,36,.25)}
+.mcard.st-off{opacity:.45}
+.mcard .info{flex:1;min-width:0}
+.mcard .n{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mcard .s{font-size:.76rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mcard.st-pressed .s{color:var(--green)}
+.mcard .t{font-family:var(--mono);font-size:.85rem;font-weight:700;font-variant-numeric:tabular-nums}
+.mcard.first .t{color:var(--gold)}
+.mcard .check{width:18px;height:18px;color:var(--green)}
+.p-hint{color:var(--muted);font-size:.82rem;margin:12px 0 0;line-height:1.5}
+
+/* ---------- Toast ---------- */
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;padding:12px 18px;border-radius:14px;
+  background:rgba(15,20,40,.92);border:1px solid var(--glass-b);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  box-shadow:0 20px 50px rgba(0,0,0,.5);transition:.3s;z-index:50;pointer-events:none;font-weight:600;max-width:min(92vw,520px);text-align:center}
+.toast.show{transform:translate(-50%,0);opacity:1}
+.toast.ok{border-color:rgba(52,211,153,.6);box-shadow:0 20px 50px rgba(0,0,0,.5),0 0 24px rgba(52,211,153,.25)}
+.toast.err{border-color:rgba(239,68,68,.6);box-shadow:0 20px 50px rgba(0,0,0,.5),0 0 24px rgba(239,68,68,.25)}
+
+@media(max-width:480px){
+  .tb-mid{order:3;width:100%;justify-content:center}
+  .tb-right .chip small{display:none}
+  .lb-row{grid-template-columns:32px 28px 1fr auto;gap:8px;padding:10px 10px}
+  .lb-row.first{grid-template-columns:40px 36px 1fr;row-gap:6px;padding:14px 12px}
+  .lb-row.first .lb-time{grid-column:3;text-align:left;font-size:1rem}
+  .lb-row.first .lb-time small{display:inline;margin-left:8px}
+  .lb-row.first .lb-name span{font-size:1.05rem}
+  .badge-voice{font-size:.62rem;padding:2px 8px}
+  .stats{gap:6px}
+  .actions .btn{padding:12px 12px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+
+/* ---------- Crediti d'apertura ---------- */
+#credits-overlay{position:fixed;inset:0;z-index:999;overflow:hidden;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(1200px 800px at 50% 20%,#1b1f4a 0%,transparent 60%),#05070f;transition:opacity .6s ease}
+#credits-overlay.hide{opacity:0;pointer-events:none}
+#credits-track{position:absolute;left:0;right:0;top:100%;display:flex;flex-direction:column;align-items:center;gap:6px;
+  text-align:center;padding:0 20px;animation:creditsScroll 5s linear forwards}
+@keyframes creditsScroll{from{transform:translateY(0)}to{transform:translateY(-200vh)}}
+.credits-title{font-size:clamp(2.4rem,8vw,4.2rem);font-weight:900;letter-spacing:-.02em;color:#fff;margin-bottom:22px;
+  text-shadow:0 0 40px rgba(34,211,238,.6)}
+.credits-title span{background:linear-gradient(90deg,var(--cyan),var(--violet),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+.credits-role{font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);font-weight:800;margin-top:26px}
+.credits-name{font-size:clamp(1.3rem,4vw,1.9rem);font-weight:800;color:#fff;text-shadow:0 0 20px rgba(167,139,250,.5)}
+#btn-skip-credits{position:absolute;right:20px;bottom:20px;z-index:2}
+
+/* ---------- Chip stanza in topbar ---------- */
+.tb-mid .chip{padding:5px 12px}
+</style>
+</head>
+<body>
+
+<div id="credits-overlay">
+  <div id="credits-track">
+    <div class="credits-title">EB<span>QT</span></div>
+    <div class="credits-role">Sviluppatore Completo</div>
+    <div class="credits-name">Kiril Buzylo</div>
+    <div class="credits-role">Creatrice del Nome</div>
+    <div class="credits-name">Aurora Rosin</div>
+    <div class="credits-role">Ideatore dell'Idea</div>
+    <div class="credits-name">Davide Panzeri</div>
+  </div>
+  <button type="button" class="btn btn-ghost btn-sm" id="btn-skip-credits">Salta ›</button>
+</div>
+
+<div class="bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><div class="grid"></div></div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<!-- ============ TOPBAR ============ -->
+<header class="topbar" id="topbar" hidden>
+  <div class="brand"><span class="bolt"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h8l-1 8 10-12h-8l1-8z"/></svg></span><span>EB<em>QT</em></span></div>
+  <div class="tb-mid"><span class="pill" id="tb-round">Round 1</span><span class="pill" id="tb-status">In attesa</span><span class="chip" id="tb-room-chip" hidden><small>Stanza</small><b id="tb-room"></b></span></div>
+  <div class="tb-right">
+    <span class="chip"><span class="avatar" id="tb-avatar">--</span><b id="tb-user">—</b><small id="tb-role"></small></span>
+    <button class="btn btn-ghost btn-sm" id="btn-logout" type="button">Esci</button>
+  </div>
+</header>
+
+<main>
+  <!-- ============ LANDING / LOGIN ============ -->
+  <section id="view-landing" class="view landing">
+    <div class="glass login" id="login-card">
+      <div class="hero">
+        <div class="logo"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h8l-1 8 10-12h-8l1-8z"/></svg></div>
+        <h1>EB<span>QT</span></h1>
+        <p>Chi preme per primo risponde a voce.</p>
+      </div>
+      <div class="roles" role="tablist" aria-label="Scegli il ruolo">
+        <button type="button" class="role active" data-role="student" role="tab" aria-selected="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12.2V17c0 1.7 2.7 3 6 3s6-1.3 6-3v-4.8"/><path d="M22 10v5"/></svg>
+          Studente
+        </button>
+        <button type="button" class="role" data-role="prof" role="tab" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 21h8M12 16v5M7 9h10M7 12h6"/></svg>
+          Professore
+        </button>
+      </div>
+      <form id="login-form" novalidate>
+        <div class="field"><label for="in-name">Nome</label><input class="input" id="in-name" autocomplete="given-name" placeholder="Es. Mario" maxlength="40"></div>
+        <div class="field"><label for="in-surname">Cognome</label><input class="input" id="in-surname" autocomplete="family-name" placeholder="Es. Rossi" maxlength="40"></div>
+        <div class="field" id="f-room-pin">
+          <label for="in-room-pin">PIN della stanza</label>
+          <input class="input" id="in-room-pin" inputmode="numeric" autocomplete="off" placeholder="Es. 1234" maxlength="20">
+        </div>
+        <div class="field" id="f-pass" hidden>
+          <label for="in-pass">Password di sicurezza</label>
+          <div class="pass">
+            <input class="input" id="in-pass" type="password" autocomplete="current-password" placeholder="••••••••">
+            <button type="button" class="eye" id="toggle-pass" aria-label="Mostra/nascondi password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+        </div>
+        <p class="error" id="login-error" hidden></p>
+        <button class="btn btn-primary btn-block" id="btn-login" type="submit">Entra come studente</button>
+      </form>
+      <p class="hint" id="login-hint">Inserisci nome, cognome e il PIN della stanza comunicato dal professore.</p>
+    </div>
+  </section>
+
+  <!-- ============ SETUP STANZA (PROFESSORE) ============ -->
+  <section id="view-room" class="view landing" hidden>
+    <div class="glass login" id="room-card">
+      <div class="hero">
+        <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 21h8M12 16v5M7 9h10M7 12h6"/></svg></div>
+        <h1>Gestisci <span>stanza</span></h1>
+        <p>Crea la stanza o aggiorna quella già attiva: gli studenti entreranno solo con il PIN che imposti qui.</p>
+      </div>
+      <form id="room-form" novalidate>
+        <div class="field"><label for="in-room-name">Nome stanza</label><input class="input" id="in-room-name" placeholder="Es. 3 Informatica" maxlength="60"></div>
+        <div class="field"><label for="in-room-pin-setup">PIN stanza</label><input class="input" id="in-room-pin-setup" inputmode="numeric" autocomplete="off" placeholder="Es. 1234" maxlength="20"></div>
+        <p class="error" id="room-error" hidden></p>
+        <button class="btn btn-primary btn-block" id="btn-room-save" type="submit">Crea / aggiorna stanza ed entra</button>
+      </form>
+      <p class="hint" id="room-hint">Comunica nome e PIN agli studenti: potranno entrare solo inserendo questo PIN.</p>
+    </div>
+  </section>
+
+  <!-- ============ DASHBOARD STUDENTE ============ -->
+  <section id="view-student" class="view wrap" hidden>
+    <div class="student">
+      <div class="glass qcard" id="s-qcard">
+        <div class="qhead">
+          <span class="pill" id="s-pill">In attesa</span>
+          <span class="chip" id="s-prof"><span class="dot off" id="s-prof-dot"></span><small id="s-prof-text">Nessun professore online</small></span>
+        </div>
+        <div class="waiting" id="s-waiting">
+          <div class="ring"><div class="loader"><span></span><span></span><span></span></div></div>
+          <p>In attesa che il professore invii una domanda…</p>
+          <small id="s-online-count">0 studenti connessi</small>
+        </div>
+        <div class="question" id="s-question" hidden>
+          <p class="lbl">Domanda</p>
+          <h2 id="s-qtext"></h2>
+        </div>
+      </div>
+
+      <div class="timer-wrap" id="s-timer-wrap">
+        <div class="timer" id="s-timer">00:00.000</div>
+        <div class="timer-sub" id="s-timer-sub">Il timer parte appena arriva la domanda</div>
+      </div>
+
+      <div class="buzzer-area" id="s-buzzer-area">
+        <button class="buzzer locked" id="buzzer" type="button" disabled aria-label="Premi per prenotarti a rispondere">
+          <span class="buzzer-glow"></span>
+          <span class="buzzer-base"></span>
+          <span class="buzzer-cap">
+            <span class="buzzer-label" id="buzzer-label">ATTENDI</span>
+            <span class="buzzer-sub" id="buzzer-sub">la domanda</span>
+          </span>
+        </button>
+      </div>
+
+      <div class="glass participants" id="s-participants" hidden>
+        <div class="lb-title"><strong>In attesa degli altri…</strong><span class="pill" id="s-part-count">0/0</span></div>
+        <div class="progress"><i id="s-part-bar" style="width:0%"></i></div>
+        <div class="chips" id="s-chips"></div>
+      </div>
+
+      <div id="s-results" hidden>
+        <div class="winner" id="s-winner" hidden>
+          <div class="trophy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a3 3 0 0 0 3 5M17 6h3a3 3 0 0 1-3 5"/></svg></div>
+          <h2>SEI IL PIÙ VELOCE!</h2>
+          <p>Rispondi <strong>a voce</strong> alla domanda del professore.</p>
+        </div>
+        <div class="glass lb" id="s-lb"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DASHBOARD PROFESSORE ============ -->
+  <section id="view-prof" class="view wrap" hidden>
+    <div class="prof">
+      <div class="glass panel">
+        <h3>Controllo round</h3>
+        <div class="stats">
+          <div class="stat"><b id="p-round">1</b><span>Round</span></div>
+          <div class="stat"><b id="p-online">0</b><span>Online</span></div>
+          <div class="stat"><b id="p-pressed">0/0</b><span>Hanno premuto</span></div>
+        </div>
+        <div class="current-q" id="p-current" hidden><small id="p-current-lbl">Domanda in corso</small><div id="p-current-text"></div></div>
+        <div class="field">
+          <label for="p-question">Nuova domanda</label>
+          <textarea class="input" id="p-question" placeholder="Es. Qual è la capitale dell'Australia?" maxlength="400"></textarea>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="btn-send" type="button">Invia domanda a tutti</button>
+          <button class="btn btn-gold" id="btn-close" type="button" hidden>Chiudi round</button>
+          <button class="btn btn-danger" id="btn-reset" type="button">Reset</button>
+        </div>
+        <p class="p-hint" id="p-hint">Scrivi la domanda e invia: il timer degli studenti partirà all'istante.</p>
+      </div>
+
+      <div class="glass panel">
+        <h3>Monitor in tempo reale <button class="btn btn-ghost btn-sm" id="btn-purge" type="button" title="Rimuove dalla lista gli studenti offline">Pulisci offline</button></h3>
+        <div class="progress"><i id="p-bar" style="width:0%"></i></div>
+        <div class="mon" id="p-mon"></div>
+      </div>
+
+      <div class="glass lb span2" id="p-lb" hidden></div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   1. CONFIGURAZIONE
+   ---------------------------------------------------------------------
+   Il "server" è localStorage: ogni scheda del browser legge/scrive le
+   stesse chiavi e riceve l'evento `storage` quando un'altra scheda le
+   modifica. Ogni studente scrive SOLO il proprio record, il professore
+   scrive SOLO la stanza (room): così non ci sono conflitti di scrittura.
+   ===================================================================== */
+const CFG = {
+  ONLINE_MS: 6000,        // dopo quanto uno studente senza heartbeat è "offline"
+  HEARTBEAT_MS: 1500,     // frequenza heartbeat presenza
+  PURGE_MS: 120000,       // il prof elimina automaticamente i record offline da 2 min
+  TICK_MS: 400,           // frequenza di rilettura dello stato (fallback all'evento storage)
+  SALT: 'quizbuzz#',      // invariato per compatibilità con la password già impostata (vedi nota in fondo al file)
+  PROF_HASH: 'b9a71407'   // FNV-1a di SALT + password. Nuova password: EBQT.hash('...') in console
+};
+const K = {
+  ROOM: 'ebqt:room',
+  PROF: 'ebqt:prof',
+  STUDENT: 'ebqt:student:',   // prefisso: ebqt:student:<id>
+  SESSION: 'ebqt:session'     // sessionStorage (per scheda)
+};
+
+/* =====================================================================
+   2. UTILITY
+   ===================================================================== */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const pad2 = n => String(n).padStart(2, '0');
+const fmt = ms => {
+  ms = Math.max(0, Math.floor(ms));
+  const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000), r = ms % 1000;
+  return `${pad2(m)}:${pad2(s)}.${String(r).padStart(3, '0')}`;
+};
+const fmtDelta = ms => `+${(ms / 1000).toFixed(3)} s`;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fullName = s => `${s.name} ${s.surname}`.trim();
+const initials = s => ((s.name[0] || '') + (s.surname[0] || '')).toUpperCase();
+const hue = str => { let h = 0; for (const c of str) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+const fnv1a = str => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16).padStart(8, '0');
+};
+const plural = (n, sing, plur) => `${n} ${n === 1 ? sing : plur}`;
+const ordinal = n => `${n}°`;
+
+const ICON = {
+  crown: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 19h18v2H3v-2zm0-2L2 6l5.5 4L12 3l4.5 7L22 6l-1 11H3z"/></svg>',
+  check: '<svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>',
+  mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg>'
+};
+
+/* =====================================================================
+   3. STORAGE LAYER (stato condiviso tra le schede)
+   ===================================================================== */
+const store = {
+  read(k, fb) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch { return fb; } },
+  write(k, v) { localStorage.setItem(k, JSON.stringify(v)); scheduleRender(); },
+  writeSilent(k, v) { localStorage.setItem(k, JSON.stringify(v)); },
+  remove(k) { localStorage.removeItem(k); scheduleRender(); },
+
+  room() { return this.read(K.ROOM, { roomName: '', roomPin: '', round: 1, status: 'idle', question: '', questionAt: null, resultsAt: null }); },
+  setRoom(patch) { const r = { ...this.room(), ...patch, updatedAt: Date.now() }; this.write(K.ROOM, r); return r; },
+
+  students() {
+    const out = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(K.STUDENT)) { const s = this.read(k, null); if (s && s.id) out.push(s); }
+    }
+    return out;
+  },
+  student(id) { return this.read(K.STUDENT + id, null); },
+  setStudent(rec) { this.write(K.STUDENT + rec.id, rec); },
+  removeStudent(id) { this.remove(K.STUDENT + id); },
+
+  prof() { return this.read(K.PROF, null); },
+  setProf(p) { this.write(K.PROF, p); }
+};
+
+const session = {
+  get() { try { return JSON.parse(sessionStorage.getItem(K.SESSION) || 'null'); } catch { return null; } },
+  set(v) { sessionStorage.setItem(K.SESSION, JSON.stringify(v)); },
+  clear() { sessionStorage.removeItem(K.SESSION); }
+};
+
+/* =====================================================================
+   4. STATO DERIVATO
+   ===================================================================== */
+const isOnline = s => (Date.now() - (s.lastSeen || 0)) < CFG.ONLINE_MS;
+const hasPressed = (s, room) => !!s && s.round === room.round && typeof s.reactionMs === 'number';
+
+function derive(room) {
+  const all = store.students();
+  const online = all.filter(isOnline);
+  const pressed = all.filter(s => hasPressed(s, room))
+                     .sort((a, b) => a.reactionMs - b.reactionMs || a.pressedAt - b.pressedAt || fullName(a).localeCompare(fullName(b)));
+  const waiting = online.filter(s => !hasPressed(s, room));
+  let status = room.status;
+  if (status === 'live' && online.length > 0 && waiting.length === 0) status = 'results';
+  return { all, online, pressed, waiting, status };
+}
+
+const state = { room: null, me: null, lastQuestionAt: null, confettiRound: null, roomFormFilled: false };
+
+/* =====================================================================
+   5. EFFETTI: audio, coriandoli, ripple, toast
+   ===================================================================== */
+let actx = null;
+function tone(freq, dur = .09, type = 'square', vol = .06, delay = 0) {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.value = freq;
+    o.connect(g); g.connect(actx.destination);
+    const t = actx.currentTime + delay;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.start(t); o.stop(t + dur);
+  } catch (e) { /* audio non disponibile: ignora */ }
+}
+const beep = () => { tone(880, .07, 'square', .05); tone(1320, .1, 'square', .04, .06); };
+const fanfare = () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, .22, 'triangle', .07, i * .13)); };
+
+const Confetti = (() => {
+  const cv = $('#confetti'), ctx = cv.getContext('2d');
+  let parts = [], raf = null, last = 0;
+  const COLORS = ['#fbbf24', '#f59e0b', '#22d3ee', '#a78bfa', '#f472b6', '#ffffff', '#34d399'];
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  addEventListener('resize', resize); resize();
+  function spawn(n, x, y, spread) {
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + (Math.random() - .5) * spread, v = 9 + Math.random() * 11;
+      parts.push({
+        x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: .32,
+        w: 6 + Math.random() * 6, h: 8 + Math.random() * 8,
+        r: Math.random() * Math.PI, vr: (Math.random() - .5) * .3,
+        c: COLORS[(Math.random() * COLORS.length) | 0], life: 1, decay: .005 + Math.random() * .007,
+        shape: Math.random() < .3 ? 'circle' : 'rect', wob: Math.random() * Math.PI * 2
+      });
+    }
+    if (!raf) { last = performance.now(); raf = requestAnimationFrame(loop); }
+  }
+  function loop(now) {
+    const k = Math.min((now - last) / 16.7, 3); last = now;   // fisica indipendente dal frame rate
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    parts = parts.filter(p => p.life > 0 && p.y < innerHeight + 40);
+    for (const p of parts) {
+      p.vy += p.g * k; p.vx *= Math.pow(.985, k); p.wob += .1 * k;
+      p.x += (p.vx + Math.sin(p.wob) * .6) * k; p.y += p.vy * k; p.r += p.vr * k; p.life -= p.decay * k;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 1.6));
+      ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c;
+      if (p.shape === 'circle') { ctx.beginPath(); ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2); ctx.fill(); }
+      else ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    }
+    if (parts.length) raf = requestAnimationFrame(loop);
+    else { raf = null; ctx.clearRect(0, 0, innerWidth, innerHeight); }
+  }
+  function celebrate(big) {
+    const W = innerWidth, H = innerHeight;
+    spawn(big ? 160 : 90, W / 2, H * .35, 1.6);
+    setTimeout(() => spawn(big ? 90 : 50, W * .12, H * .55, 1.1), 250);
+    setTimeout(() => spawn(big ? 90 : 50, W * .88, H * .55, 1.1), 450);
+    if (big) setTimeout(() => spawn(120, W / 2, H * .3, 2.2), 900);
+  }
+  function clear() { parts = []; }
+  return { celebrate, clear };
+})();
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('.btn');
+  if (!b || b.disabled) return;
+  const r = b.getBoundingClientRect(), d = Math.max(r.width, r.height);
+  const s = document.createElement('span');
+  s.className = 'rip';
+  s.style.cssText = `width:${d}px;height:${d}px;left:${e.clientX - r.left - d / 2}px;top:${e.clientY - r.top - d / 2}px`;
+  b.appendChild(s);
+  s.addEventListener('animationend', () => s.remove());
+});
+
+let toastT = null;
+function toast(msg, type = '') {
+  const t = $('#toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function shockwave() {
+  const b = $('#buzzer');
+  for (let i = 0; i < 2; i++) {
+    const s = document.createElement('span');
+    s.className = 'shock'; s.style.animationDelay = (i * 130) + 'ms';
+    b.appendChild(s);
+    s.addEventListener('animationend', () => s.remove());
+  }
+}
+
+/* Aggiorna innerHTML solo se il contenuto è cambiato (non interrompe le animazioni) */
+function setHTML(el, key, html) { if (el.dataset.key === key) return; el.dataset.key = key; el.innerHTML = html; }
+function setText(el, txt) { if (el.textContent !== txt) el.textContent = txt; }
+function setPill(el, text, cls) { setText(el, text); const c = 'pill' + (cls ? ' ' + cls : ''); if (el.className !== c) el.className = c; }
+
+/* =====================================================================
+   6. LOGIN
+   ===================================================================== */
+let role = 'student';
+$$('.role').forEach(b => b.addEventListener('click', () => {
+  role = b.dataset.role;
+  $$('.role').forEach(x => { x.classList.toggle('active', x === b); x.setAttribute('aria-selected', x === b); });
+  $('#f-pass').hidden = role !== 'prof';
+  $('#f-room-pin').hidden = role !== 'student';
+  $('#login-error').hidden = true;
+  $('#btn-login').textContent = role === 'prof' ? 'Accedi come professore' : 'Entra come studente';
+  $('#login-hint').textContent = role === 'prof'
+    ? 'Serve la password di sicurezza per accedere alla gestione della stanza.'
+    : 'Inserisci nome, cognome e il PIN della stanza comunicato dal professore.';
+  if (role === 'prof') $('#in-pass').focus();
+}));
+
+$('#toggle-pass').addEventListener('click', () => {
+  const i = $('#in-pass'); i.type = i.type === 'password' ? 'text' : 'password'; i.focus();
+});
+
+function loginError(msg) {
+  const e = $('#login-error'); e.textContent = msg; e.hidden = false;
+  const c = $('#login-card'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake');
+}
+
+$('#login-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('#in-name').value.trim(), surname = $('#in-surname').value.trim();
+  if (!name || !surname) return loginError('Inserisci sia il nome che il cognome.');
+  const now = Date.now();
+  if (role === 'prof') {
+    const pw = $('#in-pass').value;
+    if (!pw || fnv1a(CFG.SALT + pw) !== CFG.PROF_HASH) {
+      $('#in-pass').value = ''; $('#in-pass').focus();
+      return loginError('Password non corretta. Accesso al pannello professore negato.');
+    }
+    state.roomFormFilled = false;
+    session.set({ role: 'prof', id: uid(), name, surname, auth: true, roomSet: false });
+    toast(`Benvenuto, prof. ${surname}! Ora crea o gestisci la tua stanza.`, 'ok');
+  } else {
+    const pin = $('#in-room-pin').value.trim();
+    const room = store.room();
+    if (!room.roomPin) {
+      $('#in-room-pin').focus();
+      return loginError('Nessuna stanza attiva al momento: chiedi al professore di crearne una.');
+    }
+    if (!pin || pin !== room.roomPin) {
+      $('#in-room-pin').value = ''; $('#in-room-pin').focus();
+      return loginError('PIN della stanza errato.');
+    }
+    const id = uid();
+    session.set({ role: 'student', id, name, surname });
+    store.setStudent({ id, name, surname, joinedAt: now, lastSeen: now, round: null, reactionMs: null, pressedAt: null });
+    toast(`Ciao ${name}, sei entrato nella stanza "${room.roomName || 'senza nome'}"!`, 'ok');
+  }
+  $('#login-error').hidden = true;
+  $('#in-pass').value = '';
+  $('#in-room-pin').value = '';
+  render();
+});
+
+$('#room-form').addEventListener('submit', e => {
+  e.preventDefault();
+  const ss = session.get(); if (!ss || ss.role !== 'prof' || ss.auth !== true) return;
+  const roomName = $('#in-room-name').value.trim();
+  const roomPin = $('#in-room-pin-setup').value.trim();
+  const err = $('#room-error');
+  if (!roomName) { err.textContent = 'Dai un nome alla stanza.'; err.hidden = false; $('#in-room-name').focus(); return; }
+  if (!roomPin) { err.textContent = 'Imposta un PIN per la stanza.'; err.hidden = false; $('#in-room-pin-setup').focus(); return; }
+  err.hidden = true;
+  const existing = store.room();
+  const patch = { roomName, roomPin };
+  /* se cambia nome o PIN rispetto alla stanza già esistente, si riparte da un round pulito */
+  if (existing.roomName !== roomName || existing.roomPin !== roomPin) {
+    Object.assign(patch, { round: 1, status: 'idle', question: '', questionAt: null, resultsAt: null });
+  }
+  store.setRoom(patch);
+  session.set({ ...ss, roomSet: true });
+  store.setProf({ name: ss.name, surname: ss.surname, lastSeen: Date.now() });
+  toast(`Stanza "${roomName}" pronta: gli studenti possono entrare con il PIN.`, 'ok');
+  render();
+});
+
+$('#btn-logout').addEventListener('click', () => {
+  const ss = session.get(); if (!ss) return;
+  if (ss.role === 'student') store.removeStudent(ss.id); else store.remove(K.PROF);
+  session.clear();
+  state.lastQuestionAt = null; state.confettiRound = null; state.me = null; state.roomFormFilled = false;
+  Confetti.clear();
+  render();
+  toast('Sei uscito da EBQT');
+});
+
+/* =====================================================================
+   7. STUDENTE
+   ===================================================================== */
+function ensureMyRecord(ss) {
+  let me = store.student(ss.id);
+  if (!me) {
+    me = { id: ss.id, name: ss.name, surname: ss.surname, joinedAt: Date.now(), lastSeen: Date.now(), round: null, reactionMs: null, pressedAt: null };
+    store.writeSilent(K.STUDENT + me.id, me);
+  }
+  return me;
+}
+
+function buzz() {
+  const now = Date.now();                       // catturato per primo: massima precisione
+  const ss = session.get(); if (!ss || ss.role !== 'student') return;
+  const room = store.room(); if (room.status !== 'live' || !room.questionAt) return;
+  const me = ensureMyRecord(ss); if (hasPressed(me, room)) return;
+  const rec = { ...me, round: room.round, reactionMs: Math.max(0, now - room.questionAt), pressedAt: now, lastSeen: now };
+  store.setStudent(rec);
+  state.me = rec;
+  shockwave(); beep();
+  if (navigator.vibrate) navigator.vibrate(40);
+  render();
+}
+$('#buzzer').addEventListener('pointerdown', e => { if (e.button === 0 || e.pointerType !== 'mouse') buzz(); });
+$('#buzzer').addEventListener('click', buzz);   // fallback tastiera/assistive
+document.addEventListener('keydown', e => {
+  if (e.repeat) return;
+  if ((e.code === 'Space' || e.code === 'Enter') && !e.target.matches('input,textarea,button') && !$('#view-student').hidden) {
+    const b = $('#buzzer'); if (!b.disabled) { e.preventDefault(); buzz(); }
+  }
+});
+
+function setBuzzer(mode, label, sub) {
+  const bz = $('#buzzer');
+  if (bz.dataset.mode !== mode) { bz.dataset.mode = mode; bz.className = 'buzzer ' + mode; bz.disabled = mode !== 'armed'; }
+  setText($('#buzzer-label'), label); setText($('#buzzer-sub'), sub);
+}
+
+function leaderboardHTML(d, room, meId, opts = {}) {
+  const first = d.pressed[0];
+  const rows = d.pressed.map((s, i) => {
+    const isFirst = i === 0, me = s.id === meId;
+    return `<li class="lb-row${isFirst ? ' first' : ''}${me ? ' me' : ''}" style="--i:${i}">
+      <span class="lb-rank">${isFirst ? ICON.crown : (i + 1)}</span>
+      <span class="avatar" style="--h:${hue(fullName(s))}">${esc(initials(s))}</span>
+      <div class="lb-name"><span>${esc(fullName(s))}${me ? ' <small>(tu)</small>' : ''}</span>${isFirst ? `<span class="badge-voice">${ICON.mic} Risponde a voce</span>` : ''}</div>
+      <div class="lb-time">${fmt(s.reactionMs)}<small>${isFirst ? 'il più veloce' : fmtDelta(s.reactionMs - first.reactionMs)}</small></div>
+    </li>`;
+  });
+  d.online.filter(s => !hasPressed(s, room)).forEach((s, i) => {
+    rows.push(`<li class="lb-row missed" style="--i:${d.pressed.length + i}">
+      <span class="lb-rank">—</span>
+      <span class="avatar" style="--h:${hue(fullName(s))}">${esc(initials(s))}</span>
+      <div class="lb-name"><span>${esc(fullName(s))}${s.id === meId ? ' <small>(tu)</small>' : ''}</span></div>
+      <div class="lb-time">Non ha premuto</div>
+    </li>`);
+  });
+  const callout = first
+    ? `<div class="callout">${ICON.mic}<span>Risponde a voce: <b>${esc(fullName(first))}</b> — ${fmt(first.reactionMs)}</span></div>`
+    : `<div class="empty">Nessuno ha premuto il tasto in questo round.</div>`;
+  return `<div class="lb-title"><strong>Classifica — Round ${room.round}</strong><span class="pill results">Risultati</span>
+    <span class="sub">${esc(room.question)}</span></div>
+    ${opts.position || ''}${callout}<ol>${rows.join('')}</ol>`;
+}
+
+function renderStudent(ss, room) {
+  const d = derive(room);
+  const me = ensureMyRecord(ss);
+  state.me = me;
+  const pressed = hasPressed(me, room);
+  const status = d.status;
+
+  /* nuova domanda in arrivo → notifica */
+  if (status === 'idle') state.lastQuestionAt = null;
+  else if (room.questionAt && room.questionAt !== state.lastQuestionAt) {
+    state.lastQuestionAt = room.questionAt;
+    if (status === 'live' && !pressed) { toast('Nuova domanda! Premi il tasto rosso quando sai la risposta.', 'ok'); if (navigator.vibrate) navigator.vibrate([60, 40, 60]); }
+  }
+
+  /* topbar */
+  setPill($('#tb-round'), 'Round ' + room.round, '');
+  setPill($('#tb-status'), status === 'idle' ? 'In attesa' : status === 'live' ? (pressed ? 'Prenotato' : 'Live') : 'Risultati',
+          status === 'idle' ? '' : status === 'live' ? (pressed ? 'done' : 'live') : 'results');
+
+  /* card domanda */
+  $('#s-qcard').classList.toggle('live', status === 'live' && !pressed);
+  setPill($('#s-pill'), status === 'idle' ? 'In attesa' : status === 'live' ? (pressed ? 'Tempo registrato' : 'Rispondi!') : 'Round concluso',
+          status === 'idle' ? '' : status === 'live' ? (pressed ? 'done' : 'live') : 'results');
+  const prof = store.prof(), profOn = !!prof && (Date.now() - prof.lastSeen) < CFG.ONLINE_MS;
+  $('#s-prof-dot').className = 'dot' + (profOn ? '' : ' off');
+  setText($('#s-prof-text'), profOn ? `Prof. ${prof.surname} online` : 'Nessun professore online');
+  $('#s-waiting').hidden = status !== 'idle';
+  $('#s-question').hidden = status === 'idle';
+  setText($('#s-qtext'), room.question);
+  setText($('#s-online-count'), plural(d.online.length, 'studente connesso', 'studenti connessi'));
+
+  /* timer + tasto */
+  $('#s-timer-wrap').hidden = status === 'results';
+  $('#s-buzzer-area').hidden = status === 'results';
+  if (status === 'live' && !pressed) {
+    setText($('#s-timer-sub'), 'Il tempo scorre… premi il tasto rosso appena sai la risposta!');
+    setBuzzer('armed', 'PREMI!', 'quando sai la risposta');
+  } else if (pressed) {
+    setText($('#s-timer-sub'), `Tempo registrato: ${fmt(me.reactionMs)}`);
+    setBuzzer('pressed', 'FATTO', 'tempo salvato');
+  } else {
+    setText($('#s-timer-sub'), 'Il timer parte appena arriva la domanda');
+    setBuzzer('locked', 'ATTENDI', 'la domanda');
+  }
+
+  /* attesa degli altri */
+  const showPart = status === 'live' && pressed;
+  $('#s-participants').hidden = !showPart;
+  if (showPart) {
+    const total = d.online.length, done = total - d.waiting.length;
+    setText($('#s-part-count'), `${done}/${total}`);
+    $('#s-part-bar').style.width = (total ? done / total * 100 : 0) + '%';
+    const list = [...d.online].sort((a, b) => (hasPressed(b, room) - hasPressed(a, room)) || fullName(a).localeCompare(fullName(b)));
+    setHTML($('#s-chips'), list.map(s => s.id + (hasPressed(s, room) ? '1' : '0')).join('|'),
+      list.map((s, i) => `<span class="chipp${hasPressed(s, room) ? ' done' : ''}${s.id === me.id ? ' me' : ''}" style="animation-delay:${i * 40}ms">
+        <span class="avatar" style="--h:${hue(fullName(s))}">${esc(initials(s))}</span>${esc(s.name)}
+        ${hasPressed(s, room) ? ICON.check : '<span class="spin"></span>'}
+        <span class="st">${hasPressed(s, room) ? fmt(s.reactionMs) : 'in attesa'}</span></span>`).join(''));
+  }
+
+  /* risultati */
+  $('#s-results').hidden = status !== 'results';
+  if (status === 'results') {
+    const winner = d.pressed[0], iAmFirst = !!winner && winner.id === me.id;
+    $('#s-winner').hidden = !iAmFirst;
+    const myPos = d.pressed.findIndex(s => s.id === me.id);
+    const position = iAmFirst ? '' : myPos >= 0
+      ? `<p class="position">Sei arrivato <b>${ordinal(myPos + 1)}</b> su ${d.pressed.length} — ${fmtDelta(me.reactionMs - winner.reactionMs)} dal primo</p>`
+      : `<p class="position">Non hai premuto il tasto in questo round.</p>`;
+    setHTML($('#s-lb'), `${room.round}|${d.pressed.map(s => s.id + ':' + s.reactionMs).join(',')}|${d.online.map(s => s.id).join(',')}|${myPos}`,
+      leaderboardHTML(d, room, me.id, { position }));
+    if (state.confettiRound !== room.round) {
+      state.confettiRound = room.round;
+      if (winner) { Confetti.celebrate(iAmFirst); if (iAmFirst) fanfare(); }
+    }
+  }
+}
+
+/* =====================================================================
+   8. PROFESSORE
+   ===================================================================== */
+$('#btn-send').addEventListener('click', () => {
+  const ta = $('#p-question'), q = ta.value.trim();
+  if (!q) { toast('Scrivi prima la domanda da inviare.', 'err'); ta.focus(); return; }
+  const room = store.room();
+  if (room.status === 'live') { toast('C\'è già un round in corso: chiudilo o fai Reset.', 'err'); return; }
+  const patch = { status: 'live', question: q, questionAt: Date.now(), resultsAt: null };
+  if (room.status === 'results') patch.round = room.round + 1;   // dai risultati si passa direttamente al round successivo
+  store.setRoom(patch);
+  ta.value = '';
+  toast('Domanda inviata a tutti! Timer partito.', 'ok');
+});
+
+$('#btn-close').addEventListener('click', () => {
+  const room = store.room(); if (room.status !== 'live') return;
+  store.setRoom({ status: 'results', resultsAt: Date.now() });
+  toast('Round chiuso: classifica pubblicata.', 'ok');
+});
+
+$('#btn-reset').addEventListener('click', () => {
+  const room = store.room();
+  store.setRoom({ round: room.round + 1, status: 'idle', question: '', questionAt: null, resultsAt: null });
+  $('#p-question').value = '';
+  toast(`Reset completato: pronto per il round ${room.round + 1}.`, 'ok');
+});
+
+$('#btn-purge').addEventListener('click', () => {
+  const gone = store.students().filter(s => !isOnline(s));
+  gone.forEach(s => store.removeStudent(s.id));
+  toast(gone.length ? `Rimossi ${plural(gone.length, 'studente offline', 'studenti offline')}.` : 'Nessuno studente offline da rimuovere.');
+});
+
+$('#p-question').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $('#btn-send').click(); }
+});
+
+function monitorHTML(d, room) {
+  const off = d.all.filter(s => !isOnline(s) && !hasPressed(s, room));
+  const list = [
+    ...d.pressed.map((s, i) => ({ s, k: 'pressed', i })),
+    ...d.waiting.map(s => ({ s, k: 'waiting' })),
+    ...off.map(s => ({ s, k: 'off' }))
+  ];
+  if (!list.length) return '<div class="empty">Nessuno studente connesso.<br><small>Gli studenti devono aprire questa pagina e accedere come "Studente".</small></div>';
+  return list.map(({ s, k, i }) => {
+    const stateTxt = k === 'pressed' ? (i === 0 ? '1° · risponde a voce' : `${ordinal(i + 1)} · ha premuto`)
+                   : k === 'waiting' ? (room.status === 'live' ? 'In attesa che prema…' : 'Pronto')
+                   : 'Offline';
+    const right = k === 'pressed' ? `<span class="t">${fmt(s.reactionMs)}</span>`
+                : k === 'waiting' && room.status === 'live' ? '<span class="spin"></span>'
+                : `<span class="dot${k === 'off' ? ' off' : ''}"></span>`;
+    return `<div class="mcard st-${k}${k === 'pressed' && i === 0 ? ' first' : ''}">
+      <span class="avatar" style="--h:${hue(fullName(s))}">${esc(initials(s))}</span>
+      <div class="info"><div class="n">${esc(fullName(s))}</div><div class="s">${stateTxt}</div></div>${right}</div>`;
+  }).join('');
+}
+
+function renderProf(ss, room) {
+  const d = derive(room);
+
+  /* tutti hanno premuto → il prof rende ufficiali i risultati */
+  if (room.status === 'live' && d.status === 'results') { store.setRoom({ status: 'results', resultsAt: Date.now() }); return; }
+  /* pulizia automatica dei record molto vecchi (non del round corrente) */
+  d.all.filter(s => Date.now() - (s.lastSeen || 0) > CFG.PURGE_MS && !hasPressed(s, room)).forEach(s => store.removeStudent(s.id));
+
+  const status = room.status;
+  setPill($('#tb-round'), 'Round ' + room.round, '');
+  setPill($('#tb-status'), status === 'idle' ? 'In attesa' : status === 'live' ? 'Live' : 'Risultati', status === 'idle' ? '' : status);
+
+  setText($('#p-round'), String(room.round));
+  setText($('#p-online'), String(d.online.length));
+  const total = d.online.length, done = total - d.waiting.length;
+  setText($('#p-pressed'), status === 'idle' ? `0/${total}` : `${d.pressed.length}/${Math.max(total, d.pressed.length)}`);
+  $('#p-bar').style.width = (status === 'idle' || !total ? 0 : Math.min(100, done / total * 100)) + '%';
+
+  $('#p-current').hidden = status === 'idle';
+  setText($('#p-current-lbl'), status === 'live' ? 'Domanda in corso' : 'Ultima domanda');
+  setText($('#p-current-text'), room.question);
+
+  $('#btn-send').disabled = status === 'live';
+  $('#btn-close').hidden = status !== 'live';
+  setText($('#p-hint'), status === 'idle'
+    ? 'Scrivi la domanda e invia: il timer degli studenti partirà all\'istante. (Ctrl+Invio per inviare)'
+    : status === 'live'
+      ? 'La classifica comparirà automaticamente quando tutti gli studenti online avranno premuto. "Chiudi round" la mostra subito.'
+      : 'Invia una nuova domanda per iniziare il round successivo, oppure fai Reset per azzerare.');
+
+  setHTML($('#p-mon'), `${room.round}|${status}|${d.all.map(s => s.id + ':' + (isOnline(s) ? 1 : 0) + ':' + (hasPressed(s, room) ? s.reactionMs : '-')).join(',')}`,
+    monitorHTML(d, room));
+
+  $('#p-lb').hidden = status !== 'results';
+  if (status === 'results') {
+    setHTML($('#p-lb'), `${room.round}|${d.pressed.map(s => s.id + ':' + s.reactionMs).join(',')}|${d.online.map(s => s.id).join(',')}`,
+      leaderboardHTML(d, room, null));
+    if (state.confettiRound !== room.round) { state.confettiRound = room.round; if (d.pressed[0]) Confetti.celebrate(false); }
+  }
+}
+
+/* =====================================================================
+   9. ROUTER, RENDER LOOP, TIMER, PRESENZA
+   ===================================================================== */
+function prefillRoomForm(room) {
+  if (state.roomFormFilled) return;
+  state.roomFormFilled = true;
+  $('#in-room-name').value = room.roomName || '';
+  $('#in-room-pin-setup').value = room.roomPin || '';
+}
+
+function render() {
+  const ss = session.get();
+  const room = store.room();
+  state.room = room;
+  const inRoomSetup = !!ss && ss.role === 'prof' && ss.auth === true && !ss.roomSet;
+  $('#view-landing').hidden = !!ss;
+  $('#view-room').hidden = !inRoomSetup;
+  $('#view-student').hidden = !(ss && ss.role === 'student');
+  $('#view-prof').hidden = !(ss && ss.role === 'prof' && ss.auth === true && ss.roomSet);
+  $('#topbar').hidden = !ss;
+  if (!ss) return;
+  setText($('#tb-user'), `${ss.name} ${ss.surname}`);
+  setText($('#tb-role'), ss.role === 'prof' ? 'Professore' : 'Studente');
+  const av = $('#tb-avatar'); setText(av, initials(ss)); av.style.setProperty('--h', hue(`${ss.name} ${ss.surname}`));
+  const rc = $('#tb-room-chip'); rc.hidden = !room.roomName; setText($('#tb-room'), room.roomName || '');
+  if (inRoomSetup) { prefillRoomForm(room); return; }
+  if (ss.role === 'student') renderStudent(ss, room);
+  else if (ss.auth === true && ss.roomSet) renderProf(ss, room);
+}
+
+let rafRender = 0;
+function scheduleRender() { if (rafRender) return; rafRender = requestAnimationFrame(() => { rafRender = 0; render(); }); }
+
+/* timer ad alta precisione (aggiornato a ogni frame) */
+function timerLoop() {
+  const ss = session.get();
+  if (ss && ss.role === 'student' && state.room) {
+    const el = $('#s-timer'), room = state.room, me = state.me;
+    let txt = '00:00.000', cls = 'timer';
+    if (hasPressed(me, room)) { txt = fmt(me.reactionMs); cls += ' stop'; }
+    else if (room.status === 'live' && room.questionAt) { txt = fmt(Date.now() - room.questionAt); cls += ' run'; }
+    setText(el, txt);
+    if (el.className !== cls) el.className = cls;
+  }
+  requestAnimationFrame(timerLoop);
+}
+
+/* heartbeat di presenza (scrittura silenziosa: gli altri tab la ricevono via evento storage) */
+function heartbeat() {
+  const ss = session.get(); if (!ss) return;
+  if (ss.role === 'student') { const me = ensureMyRecord(ss); me.lastSeen = Date.now(); store.writeSilent(K.STUDENT + me.id, me); }
+  else if (ss.auth === true && ss.roomSet) { const p = store.prof() || {}; store.writeSilent(K.PROF, { ...p, name: ss.name, surname: ss.surname, lastSeen: Date.now() }); }
+}
+
+window.addEventListener('storage', e => { if (!e.key || e.key.startsWith('ebqt:')) scheduleRender(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { heartbeat(); scheduleRender(); } });
+setInterval(scheduleRender, CFG.TICK_MS);
+setInterval(heartbeat, CFG.HEARTBEAT_MS);
+
+/* utilità esposte in console: EBQT.hash('nuovaPassword') per cambiare PROF_HASH */
+window.EBQT = { hash: pw => fnv1a(CFG.SALT + pw), state: () => ({ room: store.room(), students: store.students(), prof: store.prof() }) };
+
+/* crediti d'apertura: overlay a schermo intero per 5s, oppure "Salta" */
+function initCredits() {
+  const overlay = $('#credits-overlay');
+  if (!overlay) return;
+  let done = false;
+  const finish = () => {
+    if (done) return; done = true;
+    overlay.classList.add('hide');
+    setTimeout(() => overlay.remove(), 650);
+  };
+  $('#btn-skip-credits').addEventListener('click', finish);
+  setTimeout(finish, 5000);
+}
+
+initCredits();
+heartbeat();
+render();
+requestAnimationFrame(timerLoop);
+})();
+</script>
+</body>
+</html>
